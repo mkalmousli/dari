@@ -1,6 +1,12 @@
 # This is just an example to get you started. A typical binary package
 # uses this file as the main entry point of the application.
 
+const isTest = true
+
+when isTest:
+  import unittest
+
+
 type
   Option*[T] = ref object
     case isSome: bool
@@ -65,6 +71,20 @@ proc nonEmpty*[T](parser: Parser[T]): Parser[T] =
 
     return parser(input)
 
+when isTest:
+  test "nonEmpty parser should return error on empty input":
+    let emptyInput = Input(text: "", position: 0)
+    let parser = proc(input: Input): auto =
+      return Result[int](kind: rkSuccess, value: 1, rest: input)
+
+    let result = nonEmpty(parser)(emptyInput)
+    check result.kind == rkError
+    check result.error == "Input is empty"
+
+
+
+
+
 
 proc charParser(c: char): Parser[char] =
   nonEmpty proc(input: Input): Result[char] =
@@ -81,7 +101,30 @@ proc charParser(c: char): Parser[char] =
       error: "Expected '" & $c & "', got '" & currentChar & "'"
     )
 
+when isTest:
+  test "charParser should succeed on matching character":
+    let input = Input(text: "abc", position: 0)
+    let parser = charParser('a')
+    let result = parser(input)
+    check result.kind == rkSuccess
+    check result.value == 'a'
+    check result.rest.position == 1
+
+  test "charParser should fail on non-matching character":
+    let input = Input(text: "abc", position: 0)
+    let parser = charParser('b')
+    let result = parser(input)
+    check result.kind == rkError
+    check result.error == "Expected 'b', got 'a'"
+
+
+
+
+
+  
+
+
 
 let aParser = charParser('a')
-let r = aParser(Input(text: "labc", position: 0))
+let r = aParser(Input(text: "abc", position: 0))
 echo repr(r)
