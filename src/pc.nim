@@ -412,17 +412,25 @@ macro oneOfParser(
   )
 
 
-let countryParser = oneOfParser(
-  Country, CountryKind,
-  ("Germany", tagParser("Germany")),
-  ("Italy", tagParser("Italy"))
-)
+if isTest:
+  test "countryParser should succeed on matching country":
+    let countryParser = oneOfParser(
+      Country, CountryKind,
+      ("Germany", tagParser("Germany")),
+      ("Italy", tagParser("Italy"))
+    )
+    let input = Input(text: "Germany", position: 0)
+    let result = countryParser(input)
+    check result.kind == rkSuccess
+    check result.value.kind == vkGermany
 
-let x = countryParser(
-  Input(
-    text: "Italy",
-    position: 0
-  )
-)
-
-echo repr(x)
+  test "countryParser should succeed on matching Italy":
+    let countryParser = oneOfParser(
+      Country, CountryKind,
+      ("Germany", tagParser("Germany")),
+      ("Italy", tagParser("Italy"))
+    )
+    let input = Input(text: "Italy", position: 0)
+    let result = countryParser(input)
+    check result.kind == rkSuccess
+    check result.value.kind == vkItaly
