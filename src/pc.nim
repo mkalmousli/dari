@@ -206,7 +206,7 @@ when isTest:
 
 
 
-macro seqParser(parsers: varargs[typed]): untyped =
+macro seqParser*(parsers: varargs[typed]): untyped =
   let types = parsers.mapIt(
     it.getTypeInst()[1]
   )
@@ -295,7 +295,7 @@ when isTest:
 
 
 
-macro oneOfParser(
+macro oneOfParser*(
   variantNode: untyped,
   variantKindNode: untyped,
   parsers: varargs[typed]
@@ -444,7 +444,7 @@ if isTest:
 
 
 
-proc repeatedParser[T](
+proc repeatedParser*[T](
   p: Parser[T], 
   minCount: int = 0, 
   maxCount: int = -1
@@ -466,7 +466,7 @@ proc repeatedParser[T](
 
 
 
-template star[T](p: Parser[T]): Parser[seq[T]] = 
+template star*[T](p: Parser[T]): Parser[seq[T]] = 
   repeatedParser(p, 0)
 
 when isTest:
@@ -496,7 +496,7 @@ when isTest:
       check r.value == @['a']
 
 
-template plus[T](p: Parser[T]): Parser[seq[T]] = 
+template plus*[T](p: Parser[T]): Parser[seq[T]] = 
   repeatedParser(p, 1)
 
 when isTest:
