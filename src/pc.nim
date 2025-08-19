@@ -286,3 +286,146 @@ when isTest:
     check result.kind == rkSuccess
     check result.value == ("Hello", ' ', "World")
 
+
+
+
+
+macro oneOfParser(
+  procNode: untyped,
+  variantNode: untyped,
+  variantKindNode: untyped,
+  parsers: varargs[typed]
+): untyped =
+  type
+    VariantInfo = ref object
+      name: string
+      parser: NimNode
+      typ: NimNode
+      kindNode: NimNode
+      valueNode: NimNode
+
+  let variants = parsers.mapIt(
+    block:
+      let name = it[0].strVal
+      let parser = it[1]
+      let typ = parser.getTypeInst()[1]
+
+      VariantInfo(
+        name: name,
+        parser: parser, 
+        typ: typ,
+        kindNode: newIdentNode("vk" & name),
+        valueNode: newIdentNode(name & "Val")
+      )
+  )
+
+
+  # dumpAstGen:
+  #   type VariantKind = enum
+  #     vkOne
+  #     vkTwo
+  let variantKindTyp = nnkTypeDef.newTree(
+    variantKindNode,
+    newEmptyNode(),
+    nnkEnumTy.newTree(
+      @[newEmptyNode()] & variants.mapIt( it.kindNode )
+    )
+  )
+
+
+  # dumpAstGen:
+  #   type Variant = ref object
+  #     case kind: VariantKind
+  #     of One:
+  #       One: string
+  #     of Two:
+  #       Two: int
+  let variantType = nnkTypeDef.newTree(
+    variantNode,
+    newEmptyNode(),
+    nnkRefTy.newTree(
+      nnkObjectTy.newTree(
+        newEmptyNode(),
+        newEmptyNode(),
+        nnkRecList.newTree(
+          nnkRecCase.newTree(
+            @[
+              nnkIdentDefs.newTree(
+                newIdentNode("kind"),
+                variantKindNode,
+                newEmptyNode()
+              )
+            ] & variants.mapIt(
+              nnkOfBranch.newTree(
+                it.kindNode,
+                nnkRecList.newTree(
+                  nnkIdentDefs.newTree(
+                    it.valueNode,
+                    it.typ,
+                    newEmptyNode()
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
+
+  let inputParam = genSym(nskParam, "input")
+  let parserProc = quote do:
+    proc `procNode`(`inputParam`: Input): Result[`variantNode`] = 
+      discard
+  parserProc.body.del(0)
+
+  for v in variants:
+    let p = v.parser
+    let kindNode = v.kindNode
+    let valueNode = v.valueNode
+
+    parserProc.body.add quote do:
+      let r = `p`(`inputParam`)
+      if r.kind == rkSuccess:
+        let v = `variantNode`(
+          kind: `kindNode`,
+          `valueNode`: r.value
+        )
+        return Result[`variantNode`](
+          kind: rkSuccess,
+          value: v,
+          rest: r.rest
+        )
+
+  parserProc.body.add quote do:
+    return Result[`variantNode`](
+      kind: rkError,
+      error: "No matching variant found"
+    )
+
+  result = nnkStmtList.newTree(
+    nnkTypeSection.newTree(
+      variantKindTyp,
+      variantType
+    ),
+    parserProc
+  )
+
+
+oneOfParser(
+  alo,
+  Country, CountryKind,
+  ("Germany", tagParser("Germany")),
+  ("Italy", tagParser("Italy"))
+)
+
+
+let x = alo(
+  Input(
+    text: "Italy",
+    position: 0
+  )
+)
+
+echo repr(x)
