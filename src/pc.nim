@@ -291,7 +291,6 @@ when isTest:
 
 
 macro oneOfParser(
-  procNode: untyped,
   variantNode: untyped,
   variantKindNode: untyped,
   parsers: varargs[typed]
@@ -376,7 +375,7 @@ macro oneOfParser(
 
   let inputParam = genSym(nskParam, "input")
   let parserProc = quote do:
-    proc `procNode`(`inputParam`: Input): Result[`variantNode`] = 
+    proc(`inputParam`: Input): Result[`variantNode`] = 
       discard
   parserProc.body.del(0)
 
@@ -413,15 +412,13 @@ macro oneOfParser(
   )
 
 
-oneOfParser(
-  alo,
+let countryParser = oneOfParser(
   Country, CountryKind,
   ("Germany", tagParser("Germany")),
   ("Italy", tagParser("Italy"))
 )
 
-
-let x = alo(
+let x = countryParser(
   Input(
     text: "Italy",
     position: 0
