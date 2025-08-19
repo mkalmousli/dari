@@ -476,8 +476,8 @@ when isTest:
       let r = p(
         Input(text: "", position: 0)
       )
-      check r.kind == rkSuccess
-      check r.value == @[]
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @[]
 
     test "parses 3 'a's":
       let p = star(charParser('a'))
