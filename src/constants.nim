@@ -1,1 +1,1 @@
-const isTest* = false
+const isTest* = true

@@ -272,22 +272,17 @@ when isTest:
     let input = Input(text: "abc", position: 0)
     let result = p(input)
     check result.kind == rkSuccess
-    check result.value == ("a", "b", "c")
+    check result.value == ('a', 'b', 'c')
 
 
+  test "seqParser \"Hello\" + ' ' + \"World\"":
+    let input = Input(text: "Hello World", position: 0)
+    let p = seqParser(
+      tagParser("Hello"),
+      charParser(' '),
+      tagParser("World")
+    )
+    let result = p(input)
+    check result.kind == rkSuccess
+    check result.value == ("Hello", ' ', "World")
 
-
-
-let p = seqParser(
-  tagParser("Hello"),
-  charParser(' '),
-  tagParser("World")
-)
-let r = p(
-  Input(
-    text: "Hello World",
-    position: 0
-  )
-)
-
-echo repr(r)
