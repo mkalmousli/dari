@@ -79,14 +79,15 @@ proc nonEmpty*[T](parser: Parser[T]): Parser[T] =
     return parser(input)
 
 when isTest:
-  test "nonEmpty parser should return error on empty input":
-    let emptyInput = Input(text: "", position: 0)
-    let parser = proc(input: Input): auto =
-      return Result[int](kind: rkSuccess, value: 1, rest: input)
+  suite "nonEmpty":
+    test "should return error on empty input":
+      let emptyInput = Input(text: "", position: 0)
+      let parser = proc(input: Input): auto =
+        return Result[int](kind: rkSuccess, value: 1, rest: input)
 
-    let result = nonEmpty(parser)(emptyInput)
-    check result.kind == rkError
-    check result.error == "Input is empty"
+      let result = nonEmpty(parser)(emptyInput)
+      check result.kind == rkError
+      check result.error == "Input is empty"
 
 
 
@@ -108,20 +109,21 @@ proc charParser*(c: char): Parser[char] =
     )
 
 when isTest:
-  test "charParser should succeed on matching character":
-    let input = Input(text: "abc", position: 0)
-    let parser = charParser('a')
-    let result = parser(input)
-    check result.kind == rkSuccess
-    check result.value == 'a'
-    check result.rest.position == 1
+  suite "charParser":
+    test "succeed on matching character":
+      let input = Input(text: "abc", position: 0)
+      let parser = charParser('a')
+      let result = parser(input)
+      check result.kind == rkSuccess
+      check result.value == 'a'
+      check result.rest.position == 1
 
-  test "charParser should fail on non-matching character":
-    let input = Input(text: "abc", position: 0)
-    let parser = charParser('b')
-    let result = parser(input)
-    check result.kind == rkError
-    check result.error == "Expected 'b', got 'a'"
+    test "fail on non-matching character":
+      let input = Input(text: "abc", position: 0)
+      let parser = charParser('b')
+      let result = parser(input)
+      check result.kind == rkError
+      check result.error == "Expected 'b', got 'a'"
 
 
 
@@ -140,19 +142,20 @@ proc notParser*[T](parser: Parser[T]): Parser[void] =
     )
 
 when isTest:
-  test "notParser should succeed when inner parser fails":
-    let input = Input(text: "abc", position: 0)
-    let parser = notParser(charParser('a'))
-    let result = parser(input)
-    check result.kind == rkError
-    check result.error == "Expected failure, got success"
+  suite "notParser":
+    test "succeed when parser fails":
+      let input = Input(text: "abc", position: 0)
+      let parser = notParser(charParser('a'))
+      let result = parser(input)
+      check result.kind == rkError
+      check result.error == "Expected failure, got success"
 
-  test "notParser should fail when inner parser succeeds":
-    let input = Input(text: "abc", position: 0)
-    let parser = notParser(charParser('b'))
-    let result = parser(input)
-    check result.kind == rkSuccess
-    check result.rest.position == 0
+    test "fail when parser succeeds":
+      let input = Input(text: "abc", position: 0)
+      let parser = notParser(charParser('b'))
+      let result = parser(input)
+      check result.kind == rkSuccess
+      check result.rest.position == 0
 
 
 
@@ -179,19 +182,20 @@ proc tagParser*(tag: string): Parser[string] =
     )
 
 when isTest:
-  test "tagParser should succeed on matching tag":
-    let input = Input(text: "abcdef", position: 0)
-    let parser = tagParser("abc")
-    let result: Result[system.string] = parser(input)
-    check result.kind == rkSuccess
-    check result.value == "abc"
+  suite "tagParser":
+    test "succeed on matching tag":
+      let input = Input(text: "abcdef", position: 0)
+      let parser = tagParser("abc")
+      let result: Result[system.string] = parser(input)
+      check result.kind == rkSuccess
+      check result.value == "abc"
 
-  test "tagParser should fail on non-matching tag":
-    let input = Input(text: "abc", position: 0)
-    let parser = tagParser("def")
-    let result = parser(input)
-    check result.kind == rkError
-    check result.error == "Expected tag 'def', got 'abc'"
+    test "fail on non-matching tag":
+      let input = Input(text: "abc", position: 0)
+      let parser = tagParser("def")
+      let result = parser(input)
+      check result.kind == rkError
+      check result.error == "Expected tag 'def', got 'abc'"
 
 
 
@@ -262,29 +266,30 @@ macro seqParser(parsers: varargs[typed]): untyped =
     )
 
 when isTest:
-  test "seqParser should succeed on matching sequence":
-    let p = seqParser(
-      charParser('a'),
-      charParser('b'),
-      charParser('c')
-    )
+  suite "seqParser":
+    test "succeed on matching sequence":
+      let p = seqParser(
+        charParser('a'),
+        charParser('b'),
+        charParser('c')
+      )
 
-    let input = Input(text: "abc", position: 0)
-    let result = p(input)
-    check result.kind == rkSuccess
-    check result.value == ('a', 'b', 'c')
+      let input = Input(text: "abc", position: 0)
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == ('a', 'b', 'c')
 
 
-  test "seqParser \"Hello\" + ' ' + \"World\"":
-    let input = Input(text: "Hello World", position: 0)
-    let p = seqParser(
-      tagParser("Hello"),
-      charParser(' '),
-      tagParser("World")
-    )
-    let result = p(input)
-    check result.kind == rkSuccess
-    check result.value == ("Hello", ' ', "World")
+    test "\"Hello\" + ' ' + \"World\"":
+      let input = Input(text: "Hello World", position: 0)
+      let p = seqParser(
+        tagParser("Hello"),
+        charParser(' '),
+        tagParser("World")
+      )
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == ("Hello", ' ', "World")
 
 
 
@@ -413,24 +418,110 @@ macro oneOfParser(
 
 
 if isTest:
-  test "countryParser should succeed on matching country":
-    let countryParser = oneOfParser(
-      Country, CountryKind,
-      ("Germany", tagParser("Germany")),
-      ("Italy", tagParser("Italy"))
-    )
-    let input = Input(text: "Germany", position: 0)
-    let result = countryParser(input)
-    check result.kind == rkSuccess
-    check result.value.kind == vkGermany
+  suite "oneOfParser":
+    test "succeed on first match":
+      let countryParser = oneOfParser(
+        Country, CountryKind,
+        ("Germany", tagParser("Germany")),
+        ("Italy", tagParser("Italy"))
+      )
+      let input = Input(text: "Germany", position: 0)
+      let result = countryParser(input)
+      check result.kind == rkSuccess
+      check result.value.kind == vkGermany
 
-  test "countryParser should succeed on matching Italy":
-    let countryParser = oneOfParser(
-      Country, CountryKind,
-      ("Germany", tagParser("Germany")),
-      ("Italy", tagParser("Italy"))
-    )
-    let input = Input(text: "Italy", position: 0)
-    let result = countryParser(input)
-    check result.kind == rkSuccess
-    check result.value.kind == vkItaly
+    test "succeed on second matching Italy":
+      let countryParser = oneOfParser(
+        Country, CountryKind,
+        ("Germany", tagParser("Germany")),
+        ("Italy", tagParser("Italy"))
+      )
+      let input = Input(text: "Italy", position: 0)
+      let result = countryParser(input)
+      check result.kind == rkSuccess
+      check result.value.kind == vkItaly
+
+
+
+
+proc repeatedParser[T](
+  p: Parser[T], 
+  minCount: int = 0, 
+  maxCount: int = -1
+): Parser[seq[T]] =
+  proc(input: Input): Result[seq[T]] =
+    var values: seq[T] = @[]
+    var rest = input
+    while maxCount < 0 or values.len < maxCount:
+      let r = p(rest)
+      if r.kind == rkSuccess:
+        values.add r.value
+        rest = r.rest
+      else:
+        break
+    if values.len >= minCount:
+      Result[seq[T]](kind: rkSuccess, value: values, rest: rest)
+    else:
+      Result[seq[T]](kind: rkError, error: "expected at least " & $minCount & " matches")
+
+
+
+template star[T](p: Parser[T]): Parser[seq[T]] = 
+  repeatedParser(p, 0)
+
+when isTest:
+  suite "star":
+    test "parses empty input will succeed":
+      let p = star(charParser('a'))
+      let r = p(
+        Input(text: "", position: 0)
+      )
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @[]
+
+    test "parses 3 'a's":
+      let p = star(charParser('a'))
+      let r = p(
+        Input(text: "aaab", position: 0)
+      )
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @['a','a','a']
+
+    test "parses 1 'a'":
+      let p = star(charParser('a'))
+      let r = p(
+        Input(text: "a", position: 0)
+      )
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @['a']
+
+
+template plus[T](p: Parser[T]): Parser[seq[T]] = 
+  repeatedParser(p, 1)
+
+when isTest:
+  suite "plus":
+    test "parses empty input will fail":
+      let p = plus(charParser('a'))
+      let r = p(
+        Input(text: "", position: 0)
+      )
+      doAssert r.kind == rkError
+
+    test "parses 1 'a'":
+      let p = plus(charParser('a'))
+      let r = p(
+        Input(text: "a", position: 0)
+      )
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @['a']
+
+    test "parses 3 'a's":
+      let p = plus(charParser('a'))
+      let r = p(
+        Input(text: "aaa", position: 0)
+      )
+      doAssert r.kind == rkSuccess
+      doAssert r.value == @['a','a','a']
+
+
