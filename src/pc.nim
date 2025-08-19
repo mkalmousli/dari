@@ -476,24 +476,24 @@ when isTest:
       let r = p(
         Input(text: "", position: 0)
       )
-      doAssert r.kind == rkSuccess
-      doAssert r.value == @[]
+      check r.kind == rkSuccess
+      check r.value == @[]
 
     test "parses 3 'a's":
       let p = star(charParser('a'))
       let r = p(
         Input(text: "aaab", position: 0)
       )
-      doAssert r.kind == rkSuccess
-      doAssert r.value == @['a','a','a']
+      check r.kind == rkSuccess
+      check r.value == @['a','a','a']
 
     test "parses 1 'a'":
       let p = star(charParser('a'))
       let r = p(
         Input(text: "a", position: 0)
       )
-      doAssert r.kind == rkSuccess
-      doAssert r.value == @['a']
+      check r.kind == rkSuccess
+      check r.value == @['a']
 
 
 template plus[T](p: Parser[T]): Parser[seq[T]] = 
@@ -506,22 +506,22 @@ when isTest:
       let r = p(
         Input(text: "", position: 0)
       )
-      doAssert r.kind == rkError
+      check r.kind == rkError
 
     test "parses 1 'a'":
       let p = plus(charParser('a'))
       let r = p(
         Input(text: "a", position: 0)
       )
-      doAssert r.kind == rkSuccess
-      doAssert r.value == @['a']
+      check r.kind == rkSuccess
+      check r.value == @['a']
 
     test "parses 3 'a's":
       let p = plus(charParser('a'))
       let r = p(
         Input(text: "aaa", position: 0)
       )
-      doAssert r.kind == rkSuccess
-      doAssert r.value == @['a','a','a']
+      check r.kind == rkSuccess
+      check r.value == @['a','a','a']
 
 
