@@ -205,27 +205,23 @@ when isTest:
 
 
 
-
 macro seqParser*(parsers: varargs[typed]): untyped =
   let types = parsers.mapIt(
     it.getTypeInst()[1]
   )
+
+  # dumpAstGen:
+  #   (char, string)
+  let tupleType = nnkTupleConstr.newTree()
+  for t in types:
+    tupleType.add t
   
   # dumpAstGen:
   #   Result[(char, string)]
   let returnType = nnkBracketExpr.newTree(
     newIdentNode("Result"),
-    nnkTupleConstr.newTree()
+    tupleType
   )
-  for t in types:
-    returnType[1].add t
-
-
-  var inputVar = genSym(nskParam, "input")
-  result = quote do:
-    proc(`inputVar`: Input): `returnType` =
-      discard
-  result.body.del(0)
 
   let resultVars = toSeq(
     0..<parsers.len()
@@ -233,12 +229,25 @@ macro seqParser*(parsers: varargs[typed]): untyped =
     genSym(nskLet, "result" & $it)
   )
 
+  # dumpAstGen:
+  #   (1, 2, 3)
+  let returnValue = nnkTupleConstr.newTree()
+  for resultVar in resultVars:
+    returnValue.add quote do:
+      `resultVar`.value
+
+
+  var inputVar = genSym(nskParam, "input")
+  let parserFn = quote do:
+    proc(`inputVar`: Input): `returnType` =
+      discard
+  parserFn.body.del(0)
 
   for i in 0..<parsers.len():
     let p = parsers[i]
     let resultVar = resultVars[i]
 
-    result.body.add quote do:
+    parserFn.body.add quote do:
       let `resultVar` = `p`(`inputVar`)
       if `resultVar`.kind == rkError:
         return `returnType`(
@@ -249,21 +258,17 @@ macro seqParser*(parsers: varargs[typed]): untyped =
     inputVar = quote do:
       `resultVar`.rest
 
-  # dumpAstGen:
-  #   (1, 2, 3)
-  let returnValue = nnkTupleConstr.newTree()
-  for resultVar in resultVars:
-    returnValue.add quote do:
-      `resultVar`.value
-
-
   let lastResult = resultVars[^1]
-  result.body.add quote do:
+  parserFn.body.add quote do:
     return `returnType`(
       kind: rkSuccess,
       value: `returnValue`,
       rest: `lastResult`.rest
     )
+
+  result = quote do:
+    Parser[`tupleType`]: `parserFn`
+
 
 when isTest:
   suite "seqParser":
