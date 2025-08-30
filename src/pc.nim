@@ -3,7 +3,7 @@ import macros
 import sequtils
 
 include constants
-
+import std/times
 
 
 when isTest:
@@ -417,7 +417,7 @@ macro oneOfParser*(
   )
 
 
-if isTest:
+when isTest:
   suite "oneOfParser":
     test "succeed on first match":
       let countryParser = oneOfParser(
@@ -523,5 +523,95 @@ when isTest:
       )
       check r.kind == rkSuccess
       check r.value == @['a','a','a']
+
+
+
+
+
+
+macro onlyFirst*(parsers: varargs[typed]): untyped =
+  let seqCall = nnkCall.newTree(
+    newIdentNode("seqParser")
+  )
+  for p in parsers:
+    seqCall.add p
+
+  let firstType = parsers[0].getTypeInst()[1]
+  let returnType = quote do:
+    Result[`firstType`]
+
+  quote do:
+    proc(input: Input): `returnType` =
+      let r = `seqCall`(input)
+      if r.kind == rkError:
+        return `returnType`(
+          kind: rkError,
+          error: r.error
+        )
+      else:
+        return `returnType`(
+          kind: rkSuccess,
+          value: r.value[0],
+          rest: r.rest
+        )
+
+when isTest:
+  suite "onlyFirst":
+    test "returns only the first parsed value":
+      let p = onlyFirst(
+        charParser('a'),
+        charParser('b'),
+        charParser('c')
+      )
+      let input = Input(text: "abc", position: 0)
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == 'a'
+      check result.rest.position == 3
+
+
+
+
+macro onlyLast*(parsers: varargs[typed]): untyped =
+  let seqCall = nnkCall.newTree(
+    newIdentNode("seqParser")
+  )
+  for p in parsers:
+    seqCall.add p
+
+  let lastIndex = parsers.len() - 1
+  let lastType = parsers[lastIndex].getTypeInst()[1]
+  let returnType = quote do:
+    Result[`lastType`]
+
+  quote do:
+    proc(input: Input): `returnType` =
+      let r = `seqCall`(input)
+      if r.kind == rkError:
+        return `returnType`(
+          kind: rkError,
+          error: r.error
+        )
+      else:
+        return `returnType`(
+          kind: rkSuccess,
+          value: r.value[`lastIndex`],
+          rest: r.rest
+        )
+
+
+when isTest:
+  suite "onlyLast":
+    test "returns only the last parsed value":
+      let p = onlyLast(
+        charParser('a'),
+        charParser('b'),
+        charParser('c')
+      )
+      let input = Input(text: "abc", position: 0)
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == 'c'
+      check result.rest.position == 3
 
 
