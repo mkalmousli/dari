@@ -294,6 +294,45 @@ when isTest:
 
 
 
+proc unionParser*[T](parsers: varargs[Parser[T]]): Parser[T] =
+  let parsersCopy = parsers.toSeq() # required for memory safety
+  proc(input: Input): Result[T] =
+    for p in parsersCopy:
+      let r = p(input)
+      if r.kind == rkSuccess:
+        return r
+    return Result[T](
+      kind: rkError,
+      error: "No matching parser found"
+    )
+
+when isTest:
+  suite "unionParser":
+    test "succeed on first matching parser":
+      let p = unionParser(
+        charParser('a'),
+        charParser('b'),
+        charParser('c')
+      )
+      let input = Input(text: "abc", position: 0)
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == 'a'
+      check result.rest.position == 1
+
+    test "succeed on second matching parser":
+      let p = unionParser(
+        charParser('x'),
+        charParser('b'),
+        charParser('c')
+      )
+      let input = Input(text: "bc", position: 0)
+      let result = p(input)
+      check result.kind == rkSuccess
+      check result.value == 'b'
+      check result.rest.position == 1
+
+
 
 macro oneOfParser*(
   variantNode: untyped,
